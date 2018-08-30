@@ -43,6 +43,15 @@ html {
 	position: absolute;
 	top: 40;
 	left: 80;
+	overflow: hidden;
+}
+@keyframes slide {
+  0%{
+    transform: translateY(-128px);
+  }
+  100%{
+    transform: translateY(0);
+  }
 }
 #ocean {
 	background-image: url("img/ocean.jpg");
@@ -194,7 +203,10 @@ function alignGame() {
 	document.getElementById("game").style.width = gameWidth + "px";
 	document.getElementById("game").style.height = gameHeight + "px";
 	document.getElementById("ocean").style.width = gameWidth + "px";
-	document.getElementById("ocean").style.height = gameHeight + "px";
+	document.getElementById("ocean").style.height = (gameHeight+128) + "px";
+	if (PERSONAL_GRAPHICS) {
+		document.getElementById("ocean").style.animation = "slide 2s linear infinite";
+	}
 	document.getElementById("score").style.height = gameCornerY + "px";
 	tileSize = Math.floor(Math.min(gameWidth/xTiles, gameHeight/yTiles));
 	updateGround();
