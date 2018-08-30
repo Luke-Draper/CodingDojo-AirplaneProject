@@ -56,6 +56,7 @@ html {
 		<div id="score">: Score 0 : Lives 3 :</div>
 		<script type="text/javascript">
 
+const PERSONAL_GRAPHICS = true;
 const MARGIN = 40;
 const scaleFactor = 1.8; //larger number scales images down more. I prefer 1.8 - 2.4
 const xTiles = 9*scaleFactor; //multiple of nine
@@ -91,9 +92,16 @@ function alignGame() {
 	document.getElementById("ocean").style.width = gameWidth + "px";
 	document.getElementById("ocean").style.height = gameHeight + "px";
 	tileSize = Math.floor(Math.min(gameWidth/xTiles, gameHeight/yTiles));
+	updateAssets();
 }
 alignGame(); //Run once when the window is loaded. This is a code snippet from my Ninja Man Project located here : https://github.com/Luke-Draper/CodingDojo-NinjaManProject
 
+function updateAssets() {
+	if (PERSONAL_GRAPHICS) {
+		document.getElementById("ocean").style.backgroundImage = 'url("img/tileGrass1.png")';
+		document.getElementById("ocean").style.backgroundSize = 'auto';
+	}
+}
 function updateTiles() {
 	var all = document.getElementsByClassName('tile');
 	for (var i = 0; i < all.length; i++) {
@@ -110,6 +118,9 @@ function drawPlanes() {
 function drawPlayer() {
 	document.getElementById("player").style.left = (player.left - tileSize/2) + "px";
 	document.getElementById("player").style.top = player.top + "px";
+	if (PERSONAL_GRAPHICS) {
+		document.getElementById("player").style.backgroundImage = 'url("img/tank_blue.png")';
+	}
 }
 function drawEnemies() {
 	createEnemyElements();
@@ -120,6 +131,9 @@ function drawEnemies() {
 	for (var i = 0; i < Math.min(docEnemies.length, enemies.length); i++) {
 		docEnemies[i].style.left = (enemies[i].left - tileSize/2) + "px";
 		docEnemies[i].style.top = enemies[i].top + "px";
+		if (PERSONAL_GRAPHICS) {
+			docEnemies[i].style.backgroundImage = 'url("img/tank_dark.png")';
+		}
 	}
 }
 function createEnemyElements() {
@@ -142,7 +156,9 @@ var player = {
 
 var enemies  = [
 	{left: gameWidth/3, top: gameHeight/3},
-	{left: gameWidth*2/3, top: gameHeight/6}
+	{left: gameWidth/6, top: gameHeight/6},
+	{left: gameWidth*2/3, top: gameHeight/3},
+	{left: gameWidth*5/6, top: gameHeight/6}
 ];
 
 drawPlanes();
@@ -203,15 +219,19 @@ function playerTick() {
 		if (player.top > gameHeight/2+tileSize) {
 			player.top--;
 		}
-		scale = 1.1;
+		if (!PERSONAL_GRAPHICS) {
+			scale = 1.1;
+		}
 	}
 	if (downPressed && !(upPressed && downPressed)) { // DOWN
 		if (player.top < gameHeight-(tileSize+5)) {
 			player.top++;
 		}
-		scale = 0.9;
+		if (!PERSONAL_GRAPHICS) {
+			scale = 0.9;
+		}
 	}
-	document.getElementById("player").style.transform = "matrix(1, 0, " + skew + ", " + scale + ", 0, 0)";
+	document.getElementById("player").style.transform = "matrix(1, " + -skew + ", " + skew + ", " + scale + ", 0, 0)";
 }
 
 
