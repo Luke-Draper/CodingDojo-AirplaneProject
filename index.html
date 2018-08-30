@@ -19,6 +19,7 @@ html {
 	left: 80;
 	color: white;
 }
+/* personal assets obtained from https://kenney.nl/assets/topdown-tanks-redux */
 #game {
 	background-color: white;
 	position: absolute;
@@ -32,12 +33,12 @@ html {
 #player {
 	position: absolute;
 	background-image: url("img/player.png");
-	background-size: contain;
+	background-size: cover;
 }
 .enemy {
 	position: absolute;
 	background-image: url("img/enemy.png");
-	background-size: contain;
+	background-size:cover;
 }
 
 		</style>
@@ -56,8 +57,9 @@ html {
 		<script type="text/javascript">
 
 const MARGIN = 40;
-const xTiles = 9*1.5; //multiple of nine
-const yTiles = 7*1.5; //multiple of seven
+const scaleFactor = 1.8; //larger number scales images down more. I prefer 1.8 - 2.4
+const xTiles = 9*scaleFactor; //multiple of nine
+const yTiles = 7*scaleFactor; //multiple of seven
 var tileSize = 10;
 var gameWidth = 900, gameHeight = 700;
 var gameCornerX = 0, gameCornerY = 0;
@@ -103,19 +105,35 @@ function updateTiles() {
 function drawPlanes() {
 	drawPlayer();
 	drawEnemies();
+	updateTiles();
 }
 function drawPlayer() {
 	document.getElementById("player").style.left = (player.left - tileSize/2) + "px";
 	document.getElementById("player").style.top = player.top + "px";
-	document.getElementById("player").style.width = tileSize + "px";
-	document.getElementById("player").style.height = tileSize + "px";
 }
 function drawEnemies() {
-
+	createEnemyElements();
+	var docEnemies = document.getElementsByClassName('enemy');
+	if (docEnemies.length != enemies.length) {
+		console.log("Enemy array mismatch");
+	}
+	for (var i = 0; i < Math.min(docEnemies.length, enemies.length); i++) {
+		docEnemies[i].style.left = (enemies[i].left - tileSize/2) + "px";
+		docEnemies[i].style.top = enemies[i].top + "px";
+	}
 }
 function createEnemyElements() {
-	
+	var htmlOutput = "";
+	for (var i=0; i<enemies.length; i++) {
+		htmlOutput += "<div class='enemy tile'></div>";
+	}
+	document.getElementById("enemies").innerHTML = htmlOutput;
 }
+
+var upPressed = false;
+var downPressed = false;
+var leftPressed = false;
+var rightPressed = false;
 
 var player = {
 	left: gameWidth/2,
@@ -128,6 +146,75 @@ var enemies  = [
 ];
 
 drawPlanes();
+
+document.onkeydown = function(e) {
+	if(e.keyCode == 37) { // LEFT
+		leftPressed = true;
+	}
+	if (e.keyCode == 39) { // RIGHT
+		rightPressed = true;
+	}
+	if (e.keyCode == 38) { // UP
+		upPressed = true;
+	}
+	if (e.keyCode == 40) { // DOWN
+		downPressed = true;
+	}
+}
+document.onkeyup = function(e) {
+	if(e.keyCode == 37) { // LEFT
+		leftPressed = false;
+	}
+	if (e.keyCode == 39) { // RIGHT
+		rightPressed = false;
+	}
+	if (e.keyCode == 38) { // UP
+		upPressed = false;
+	}
+	if (e.keyCode == 40) { // DOWN
+		downPressed = false;
+	}
+}
+
+var timer = null;
+const GAME_TICK_TIME = 10;
+
+timer = window.setInterval(gameTick, GAME_TICK_TIME);
+
+function gameTick() {
+	playerTick();
+	drawPlanes();
+}
+function playerTick() {
+	var skew = 0, scale = 1;
+	if(leftPressed && !(leftPressed && rightPressed)) { // LEFT
+		if (player.left > tileSize/2) {
+			player.left--;
+		}
+		skew = 0.1;
+	}
+	if (rightPressed && !(leftPressed && rightPressed)) { // RIGHT
+		if (player.left < gameWidth-tileSize/2) {
+			player.left++;
+		}
+		skew = -0.1;
+	}
+	if (upPressed && !(upPressed && downPressed)) { // UP
+		if (player.top > gameHeight/2+tileSize) {
+			player.top--;
+		}
+		scale = 1.1;
+	}
+	if (downPressed && !(upPressed && downPressed)) { // DOWN
+		if (player.top < gameHeight-(tileSize+5)) {
+			player.top++;
+		}
+		scale = 0.9;
+	}
+	document.getElementById("player").style.transform = "matrix(1, 0, " + skew + ", " + scale + ", 0, 0)";
+}
+
+
 		</script>
 	</body>
 </html>
