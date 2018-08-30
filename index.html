@@ -2,29 +2,34 @@
 	<head>
 		<title>Airplane</title>
 		<style type="text/css">
-			* {
-				margin: 0;
-				padding: 0;
-				line-height: 0;
-			}
-			html {
-				background-color: black;
-			}
-			#score {
-				position: absolute;
-				top: 20;
-				font-family: monospace;
-				font-size: 20px;
-				left: 80;
-				color: white;
-			}
-			#game {
-				background-color: white;
-				background-image: url("img/ocean.jpg");
-				position: absolute;
-				top: 40;
-				left: 80;
-			}
+
+* {
+	margin: 0;
+	padding: 0;
+	line-height: 0;
+}
+html {
+	background-color: black;
+}
+#score {
+	position: absolute;
+	top: 20;
+	font-family: monospace;
+	font-size: 20px;
+	left: 80;
+	color: white;
+}
+#game {
+	background-color: white;
+	position: absolute;
+	top: 40;
+	left: 80;
+}
+#ocean {
+	background-image: url("img/ocean.jpg");
+	background-size: contain;
+}
+
 		</style>
 	</head>
 	<body>
@@ -35,29 +40,34 @@
 		<script type="text/javascript">
 
 const MARGIN = 40;
-var gameSize = 100;
+var gameWidth = 900;
+var gameHeight = 700;
 
 function alignGame() {
 	var screenHeight = window.innerHeight;
 	var screenWidth = window.innerWidth;
-	if (screenWidth<screenHeight) {
-		gameSize = screenWidth - 2*MARGIN;
+	if (screenWidth*9<screenHeight*7) {
+		gameWidth = screenWidth - 2*MARGIN;
+		gameHeight = gameWidth*7/9;
 	} else {
-		gameSize = screenHeight - 2*MARGIN;
+		gameHeight = screenHeight - 2*MARGIN;
+		gameWidth = gameHeight*9/7;
 	}
-	if (screenWidth<screenHeight) {
-		var marginVal = Math.floor((screenHeight - gameSize)/2);
+	if (screenWidth*9<screenHeight*7) {
+		var marginVal = Math.floor((screenHeight - gameHeight)/2);
 		document.getElementById("game").style.left = MARGIN + "px";
 		document.getElementById("game").style.top = marginVal + "px";
 		document.getElementById("score").style.left = MARGIN + "px";
 	} else {
-		var marginVal = Math.floor((screenWidth - gameSize)/2);
+		var marginVal = Math.floor((screenWidth - gameWidth)/2);
 		document.getElementById("game").style.left = marginVal + "px";
 		document.getElementById("game").style.top = MARGIN + "px";
 		document.getElementById("score").style.left = marginVal + "px";
 	}
-	document.getElementById("game").style.width = gameSize + "px";
-	document.getElementById("game").style.height = gameSize + "px";
+	document.getElementById("game").style.width = gameWidth + "px";
+	document.getElementById("game").style.height = gameHeight + "px";
+	document.getElementById("ocean").style.width = gameWidth + "px";
+	document.getElementById("ocean").style.height = gameHeight + "px";
 }
 alignGame(); //Run once when the window is loaded. This is a code snippet from my Ninja Man Project located here : https://github.com/Luke-Draper/CodingDojo-NinjaManProject
 
