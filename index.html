@@ -89,10 +89,10 @@ html {
 .pickup {
 	position: absolute;
 }
-.health.health-pickup{
-	background-color: rgb(94, 165, 103);
+.pickup.health-pickup{
+	background-color: rgb(211, 101, 124);
 }
-.health.missile-pickup{
+.pickup.missile-pickup{
 	background-color: rgb(70, 110, 184);
 }
 
@@ -122,7 +122,7 @@ html {
 /* Settings */
 
 const PERSONAL_GRAPHICS = true;
-const SCALE_FACTOR = 1.8; //larger number scales images down more. I prefer 1.8 - 2.4
+const SCALE_FACTOR = 2.4; //larger number scales images down more. I prefer 1.8 - 2.4
 const GAME_TICK_TIME = 4;
 const GAME_START_DELAY = 200;
 const PLAYER_SPEED = 2;
@@ -136,13 +136,18 @@ const PLAYER_MISSILE_FIRING_RATE = 250; //Number of ticks before the next bullet
 const PLAYER_MISSILE_DAMAGE = 30;
 const PLAYER_MISSILE_SPEED = 4;
 const ENEMY_SPAWN_RATE = 500;
+const ENEMY_SPEED = 5;
 const ENEMY_SPAWN_FIRING_DELAY = 250;
 const ENEMY_STARTING_HEALTH = 20;
-const ENEMY_BULLET_FIRING_RATE = 80; //Number of ticks before the next bullet is fired
+const ENEMY_BULLET_FIRING_RATE = 200; //Number of ticks before the next bullet is fired
 const ENEMY_BULLET_DAMAGE = 3;
 const ENEMY_BULLET_SPEED = 2;
+const ENEMY_COLLISION_DAMAGE = 90;
+const ENEMY_SCORE = 150;
 const STARTING_ENEMIES = 3;
 const MAX_ENEMIES = 7;
+const SCORE_COUNT_SPEED = 100;
+const PICKUP_SPEED = 0.3;
 
 /* Constants */
 
@@ -153,6 +158,7 @@ const yTiles = 7*SCALE_FACTOR; //multiple of seven
 /* Variables */
 
 var score = 0;
+var scoreTimer = 0;
 var highscore = 2000;
 var tileSize = 20;
 var bulletWidth = 2;
@@ -181,10 +187,7 @@ var player = {
 	missiles: PLAYER_STARTING_MISSILES
 }
 var enemyArray  = [
-	{left: gameWidth/3, top: gameHeight/3, bulletTimer: 0, health: 20},
-	{left: gameWidth/6, top: gameHeight/6},
-	{left: gameWidth*2/3, top: gameHeight/3},
-	{left: gameWidth*5/6, top: gameHeight/6}
+	{left: gameWidth/3, top: gameHeight/3, moveTimer: 0, bulletTimer: 0, health: 20},
 ];
 var enemySpawnTimer = 0;
 var bulletArray = [
@@ -226,8 +229,8 @@ function alignGame() {
 	bulletHeight = tileSize*5/20;
 	missileWidth = tileSize*3/20;
 	missileHeight = tileSize*8/20;
-	pickupWidth = tileSize*4/20;
-	pickupHeight = tileSize*4/20;
+	pickupWidth = tileSize*6/20;
+	pickupHeight = tileSize*6/20;
 }
 alignGame(); //Run once when the window is loaded. This is a code snippet from my Ninja Man Project located here : https://github.com/Luke-Draper/CodingDojo-NinjaManProject
 function updateCSS() {
@@ -253,7 +256,7 @@ function updateCSS() {
 	if (PERSONAL_GRAPHICS) {
 		document.getElementById("ocean").style.backgroundImage = 'url("img/tileGrass1.png")';
 		document.getElementById("ocean").style.backgroundSize = 'auto';
-		document.getElementById("ocean").style.animation = "slide 2s linear infinite";
+		document.getElementById("ocean").style.animation = "slide 4s linear infinite";
 	}
 }
 
@@ -271,6 +274,8 @@ function initializeGame() {
 function resetGame() {
 	gameTime = 0;
 	score = 0;
+	scoreTimer = 0;
+	enemySpawnTimer = 0;
 	player = {
 		left: gameWidth/2,
 		top: gameHeight*2/3,
@@ -376,7 +381,24 @@ function createMissileElements() {
 	document.getElementById("missiles").innerHTML = htmlOutput;
 }
 function drawPickups() {
-	//TODO
+	createPickupElements();
+	var docPickups = document.getElementsByClassName('pickup');
+	if (docPickups.length != pickupArray.length) {
+		console.log("Pickup array mismatch");
+	}
+	for (var i = 0; i < Math.min(docPickups.length, pickupArray.length); i++) {
+		docPickups[i].style.left = (pickupArray[i].left - tileSize/2) + "px";
+		docPickups[i].style.top = pickupArray[i].top + "px";
+		docPickups[i].style.width = pickupWidth + "px";
+		docPickups[i].style.height = pickupHeight + "px";
+	}
+}
+function createPickupElements() {
+	var htmlOutput = "";
+	for (var i=0; i<pickupArray.length; i++) {
+		htmlOutput += "<div class='pickup " + pickupArray[i].type + "-pickup'></div>";
+	}
+	document.getElementById("pickups").innerHTML = htmlOutput;
 }
 
 /* Interaction Functions */
@@ -425,6 +447,9 @@ document.onkeyup = function(e) {
 /* Game Loop Functions */
 
 function gameTick() {
+	if (player.health<=0) {
+		initializeGame();
+	}
 	if (gameTime >= GAME_START_DELAY) {
 		playerTick();
 		enemyTick();
@@ -432,15 +457,18 @@ function gameTick() {
 		missileTick();
 		pickupTick();
 	}
-
 	drawPlanes();
 	scoreBoard();
 	gameTime++;
+	if (enemySpawnTimer>=ENEMY_SPAWN_RATE) {
+		spawnEnemy();
+	} else {
+		enemySpawnTimer++;
+	}
 }
 function playerTick() {
 	if (player.moveTimer>=PLAYER_SPEED) {
 		playerMove();
-		player.moveTimer = 0;
 	} else {
 		player.moveTimer++;
 	}
@@ -462,12 +490,14 @@ function playerMove() {
 			player.left--;
 		}
 		skew = 0.1;
+		player.moveTimer = 0;
 	}
 	if (rightPressed && !(leftPressed && rightPressed)) { // RIGHT
 		if (player.left < gameWidth-tileSize/2) {
 			player.left++;
 		}
 		skew = -0.1;
+		player.moveTimer = 0;
 	}
 	if (upPressed && !(upPressed && downPressed)) { // UP
 		if (player.top > gameHeight/2+tileSize) {
@@ -476,6 +506,7 @@ function playerMove() {
 		if (!PERSONAL_GRAPHICS) {
 			scale = 1.1;
 		}
+		player.moveTimer = 0;
 	}
 	if (downPressed && !(upPressed && downPressed)) { // DOWN
 		if (player.top < gameHeight-(tileSize+5)) {
@@ -484,6 +515,7 @@ function playerMove() {
 		if (!PERSONAL_GRAPHICS) {
 			scale = 0.9;
 		}
+		player.moveTimer = 0;
 	}
 	document.getElementById("player").style.transform = "matrix(1, " + -skew + ", " + skew + ", " + scale + ", 0, 0)";
 }
@@ -506,12 +538,46 @@ function enemyTick() {
 	for (var i = enemyArray.length-1; i>=0; i--) {
 		var en = enemyArray[i];
 		if (en.health<=0) {
+			if (Math.floor(Math.random() * 3) > 0) {
+				var type = 'health';
+				var am = 1+Math.floor(Math.random() * 10);
+				if (Math.floor(Math.random() * 2) > 0) {
+					type = 'missile';
+					am = Math.ceil(am/2);
+				}
+				spawnPickup(en.left+tileSize/2-pickupWidth/2,en.top+tileSize/2-pickupHeight/2,PICKUP_SPEED,type,am);
+			}
+			score += ENEMY_SCORE;
 			enemyArray.splice(i,1);
+			continue;
 		}
-		var ex1 = bulletArray[i].left;
-		var ex2 = bulletArray[i].left + tileSize;
-		var ey = bulletArray[i].top + tileSize;
+		if (en.moveTimer>=ENEMY_SPEED) {
+			enemyMove(en);
+		} else {
+			en.moveTimer++;
+		}
+		if (en.bulletTimer>=ENEMY_BULLET_FIRING_RATE) {
+			enemyFireBullet(en);
+		} else {
+			en.bulletTimer++;
+		}
+		var ex1 = enemyArray[i].left;
+		var ex2 = enemyArray[i].left + tileSize;
+		var ey = enemyArray[i].top + tileSize;
+		if (ey >= player.top && ey <= player.top + tileSize && ((ex1 >= player.left && ex1 <= player.left + tileSize)||(ex2 >= player.left && ex2 <= player.left + tileSize))) {
+			player.health -= ENEMY_COLLISION_DAMAGE;
+			enemyArray.splice(i,1);
+			continue;
+		}
+		if (en.top>gameHeight+tileSize) {
+			enemyArray.splice(i,1);
+			continue;
+		}
 	}
+}
+function enemyMove(en) {
+	en.top += 1;
+	en.moveTimer = 0;
 }
 function enemyFireBullet(en) {
 	spawnBullet(en.left + tileSize/2, en.top+tileSize, ENEMY_BULLET_SPEED, 'enemy', ENEMY_BULLET_DAMAGE);
@@ -531,8 +597,8 @@ function bulletTick() {
 		} else {
 			var temp = false;
 			for (var t = 0; t < enemyArray.length; t++) {
-				if (!temp && centerX >= t.left && centerX <= t.left + tileSize && centerY >= t.top && centerY <= t.top + tileSize) {
-					t.health -= bulletArray[i].damage;
+				if (!temp && centerX >= enemyArray[t].left && centerX <= enemyArray[t].left + tileSize && centerY >= enemyArray[t].top && centerY <= enemyArray[t].top + tileSize) {
+					enemyArray[t].health -= bulletArray[i].damage;
 					bulletArray.splice(i,1);
 					spliced = true;
 					temp = true;
@@ -557,8 +623,8 @@ function missileTick() {
 		} else {
 			var temp = false;
 			for (var t = 0; t < enemyArray.length; t++) {
-				if (!temp && centerX >= t.left && centerX <= t.left + tileSize && centerY >= t.top && centerY <= t.top + tileSize) {
-					t.health -= missileArray[i].damage;
+				if (!temp && centerX >= enemyArray[t].left && centerX <= enemyArray[t].left + tileSize && centerY >= enemyArray[t].top && centerY <= enemyArray[t].top + tileSize) {
+					enemyArray[t].health -= missileArray[i].damage;
 					missileArray.splice(i,1);
 					spliced = true;
 					temp = true;
@@ -578,9 +644,9 @@ function pickupTick() {
 		var spliced = false;
 		if (centerX >= player.left && centerX <= player.left + tileSize && centerY >= player.top && centerY <= player.top + tileSize) {
 			if (pickupArray[i].type == 'health') {
-				player.health+=pickupArray[i].amount
+				player.health+=pickupArray[i].amount;
 			} else if (pickupArray[i].type == 'missile') {
-				player.missiles+=pickupArray[i].amount
+				player.missiles+=pickupArray[i].amount;
 			}
 			pickupArray.splice(i,1);
 			spliced = true;
@@ -591,17 +657,37 @@ function pickupTick() {
 	}
 }
 
-
 function scoreBoard() {
 	if (score > highscore) {
 		highscore = score;
 	}
+	if (scoreTimer>=SCORE_COUNT_SPEED) {
+		score++;
+		scoreTimer = 0;
+	} else {
+		scoreTimer++;
+	}
 	document.getElementById("score").innerHTML = ": Highscore &bull; " + highscore + " : Score &bull; " + score + " : Health &bull; " + player.health + " : Missiles &bull; " + player.missiles + " :";
 }
 function spawnEnemy() {
-	var l = Math.floor(tileSize/2 + (Math.random() * (gameWidth-tileSize)));
-	var t = -Math.floor(tileSize + (Math.random() * 2 * tileSize));
-	enemyArray.push({left: l, top: t, bulletTimer: -ENEMY_SPAWN_FIRING_DELAY, health: ENEMY_STARTING_HEALTH});
+	if (enemyArray.length<MAX_ENEMIES) {
+		var spawned = false;
+		while(!spawned){
+			var l = Math.floor(tileSize/2 + (Math.random() * (gameWidth-tileSize)));
+			var t = -Math.floor(tileSize + (Math.random() * 2 * tileSize));
+			var valid = true;
+			for (var i=0; i<enemyArray.length; i++) {
+				if (!valid && (l > enemyArray[i].left && l < enemyArray[i].left + tileSize)) {
+					valid = false;
+				}
+			}
+			if (valid) {
+				enemyArray.push({left: l, top: t, moveTimer: 0, bulletTimer: -ENEMY_SPAWN_FIRING_DELAY, health: ENEMY_STARTING_HEALTH});
+				spawned = true;
+				enemySpawnTimer = 0;
+			}
+		}
+	}
 }
 function spawnBullet(l, t, s, la, d) {
 	bulletArray.push({left: l, top: t, speed: s, launcher: la, damage: d});
@@ -609,8 +695,8 @@ function spawnBullet(l, t, s, la, d) {
 function spawnMissile(l, t, s, la, d) {
 	missileArray.push({left: l, top: t, speed: s, launcher: la, damage: d});
 }
-function spawnPowerup(l, t, s, type, a) {
-	missileArray.push({left: l, top: t, speed: s, type: type, amount: a});
+function spawnPickup(l, t, s, ty, a) {
+	pickupArray.push({left: l, top: t, speed: s, type: ty, amount: a});
 }
 
 initializeGame();
