@@ -52,18 +52,86 @@ html {
 			<div id="enemies">
 				<div class="enemy tile"></div>
 			</div>
+			<div id="bullets"></div>
+			<div id="missiles"></div>
+			<div id="pickups"></div>
 		</div>
-		<div id="score">: Score 0 : Lives 3 :</div>
+		<div id="score">: Highscore 0 : Score 0 : Health 100 : Missiles 5 :</div>
 		<script type="text/javascript">
 
+/* Settings */
+
 const PERSONAL_GRAPHICS = true;
+const SCALE_FACTOR = 1.8; //larger number scales images down more. I prefer 1.8 - 2.4
+const GAME_TICK_TIME = 5;
+const GAME_START_DELAY = 200;
+const PLAYER_SPEED = 2;
+const PLAYER_STARTING_HEALTH = 100;
+const PLAYER_INVULNERABILITY_TIME = 50;
+const PLAYER_BULLET_FIRING_RATE = 5; //Number of ticks before the next bullet can be fired
+const PLAYER_BULLET_DAMAGE = 5;
+const PLAYER_BULLET_SPEED = 4;
+const PLAYER_STARTING_MISSILES = 5;
+const PLAYER_MISSILE_FIRING_RATE = 25; //Number of ticks before the next bullet can be fired
+const PLAYER_MISSILE_DAMAGE = 30;
+const PLAYER_MISSILE_SPEED = 8;
+const ENEMY_SPAWN_RATE = 500;
+const ENEMY_STARTING_HEALTH = 20;
+const ENEMY_BULLET_FIRING_RATE = 5; //Number of ticks before the next bullet is fired
+const ENEMY_BULLET_DAMAGE = 3;
+const ENEMY_BULLET_SPEED = 4;
+const STARTING_ENEMIES = 3;
+
+/* Constants */
+
 const MARGIN = 40;
-const scaleFactor = 1.8; //larger number scales images down more. I prefer 1.8 - 2.4
-const xTiles = 9*scaleFactor; //multiple of nine
-const yTiles = 7*scaleFactor; //multiple of seven
+const xTiles = 9*SCALE_FACTOR; //multiple of nine
+const yTiles = 7*SCALE_FACTOR; //multiple of seven
+
+/* Variables */
+
+var score = 0;
+var highscore = 2000;
 var tileSize = 10;
 var gameWidth = 900, gameHeight = 700;
 var gameCornerX = 0, gameCornerY = 0;
+var upPressed = false;
+var downPressed = false;
+var leftPressed = false;
+var rightPressed = false;
+var bulletPressed = false;
+var missilePressed = false;
+var player = {
+	left: gameWidth/2,
+	top: gameHeight*2/3,
+	moveTimer: 0,
+	bulletTimer: 0,
+	missileTimer: 0,
+	isInvulnerable: false,
+	invulnerabilityTimer: 0,
+	health: PLAYER_STARTING_HEALTH,
+	missiles: PLAYER_STARTING_MISSILES
+}
+var enemyArray  = [
+	{left: gameWidth/3, top: gameHeight/3},
+	{left: gameWidth/6, top: gameHeight/6},
+	{left: gameWidth*2/3, top: gameHeight/3},
+	{left: gameWidth*5/6, top: gameHeight/6}
+];
+var enemySpawnTimer = 0;
+var bulletArray = [
+	{left: 0, top: 0, speed: 2, damage: 3}
+];
+var missileArray = [
+	{left: 0, top: 0, speed: 2, damage: 3}
+];
+var pickupArray = [
+	{left: 0, top: 0, speed: 1, type: 'health', amount: 5}
+];
+var gameTime = 0;
+var timer = null;
+
+/* Setup Functions */
 
 function alignGame() {
 	var screenHeight = window.innerHeight;
@@ -92,28 +160,55 @@ function alignGame() {
 	document.getElementById("ocean").style.width = gameWidth + "px";
 	document.getElementById("ocean").style.height = gameHeight + "px";
 	tileSize = Math.floor(Math.min(gameWidth/xTiles, gameHeight/yTiles));
-	updateAssets();
+	updateGround();
 }
 alignGame(); //Run once when the window is loaded. This is a code snippet from my Ninja Man Project located here : https://github.com/Luke-Draper/CodingDojo-NinjaManProject
-
-function updateAssets() {
+function updateGround() {
 	if (PERSONAL_GRAPHICS) {
 		document.getElementById("ocean").style.backgroundImage = 'url("img/tileGrass1.png")';
 		document.getElementById("ocean").style.backgroundSize = 'auto';
 	}
 }
-function updateTiles() {
-	var all = document.getElementsByClassName('tile');
-	for (var i = 0; i < all.length; i++) {
-		all[i].style.width = tileSize + "px";
-		all[i].style.height = tileSize + "px";
+
+function initializeGame() {
+	if (timer != null) {
+		window.clearInterval(timer);
+		timer = null;
 	}
+	resetGame();
+	timer = window.setInterval(gameTick, GAME_TICK_TIME);
 }
+function resetGame() {
+	gameTime = 0;
+	score = 0;
+	player = {
+		left: gameWidth/2,
+		top: gameHeight*2/3,
+		moveTimer: 0,
+		bulletTimer: 0,
+		missileTimer: 0,
+		isInvulnerable: false,
+		invulnerabilityTimer: 0,
+		health: PLAYER_STARTING_HEALTH,
+		missiles: PLAYER_STARTING_MISSILES
+	}
+	enemyArray  = [];
+	enemySpawnTimer = 0;
+	bulletArray = [];
+	missileArray = [];
+	pickupArray = [];
+}
+
+
+/* Display Functions */
 
 function drawPlanes() {
 	drawPlayer();
 	drawEnemies();
 	updateTiles();
+	drawBullets();
+	drawMissiles();
+	drawPickups();
 }
 function drawPlayer() {
 	document.getElementById("player").style.left = (player.left - tileSize/2) + "px";
@@ -125,12 +220,12 @@ function drawPlayer() {
 function drawEnemies() {
 	createEnemyElements();
 	var docEnemies = document.getElementsByClassName('enemy');
-	if (docEnemies.length != enemies.length) {
+	if (docEnemies.length != enemyArray.length) {
 		console.log("Enemy array mismatch");
 	}
-	for (var i = 0; i < Math.min(docEnemies.length, enemies.length); i++) {
-		docEnemies[i].style.left = (enemies[i].left - tileSize/2) + "px";
-		docEnemies[i].style.top = enemies[i].top + "px";
+	for (var i = 0; i < Math.min(docEnemies.length, enemyArray.length); i++) {
+		docEnemies[i].style.left = (enemyArray[i].left - tileSize/2) + "px";
+		docEnemies[i].style.top = enemyArray[i].top + "px";
 		if (PERSONAL_GRAPHICS) {
 			docEnemies[i].style.backgroundImage = 'url("img/tank_dark.png")';
 		}
@@ -138,30 +233,29 @@ function drawEnemies() {
 }
 function createEnemyElements() {
 	var htmlOutput = "";
-	for (var i=0; i<enemies.length; i++) {
+	for (var i=0; i<enemyArray.length; i++) {
 		htmlOutput += "<div class='enemy tile'></div>";
 	}
 	document.getElementById("enemies").innerHTML = htmlOutput;
 }
-
-var upPressed = false;
-var downPressed = false;
-var leftPressed = false;
-var rightPressed = false;
-
-var player = {
-	left: gameWidth/2,
-	top: gameHeight*2/3
+function updateTiles() {
+	var all = document.getElementsByClassName('tile');
+	for (var i = 0; i < all.length; i++) {
+		all[i].style.width = tileSize + "px";
+		all[i].style.height = tileSize + "px";
+	}
+}
+function drawBullets() {
+	//TODO
+}
+function drawMissiles() {
+	//TODO
+}
+function drawPickups() {
+	//TODO
 }
 
-var enemies  = [
-	{left: gameWidth/3, top: gameHeight/3},
-	{left: gameWidth/6, top: gameHeight/6},
-	{left: gameWidth*2/3, top: gameHeight/3},
-	{left: gameWidth*5/6, top: gameHeight/6}
-];
-
-drawPlanes();
+/* Interaction Functions */
 
 document.onkeydown = function(e) {
 	if(e.keyCode == 37) { // LEFT
@@ -192,16 +286,24 @@ document.onkeyup = function(e) {
 	}
 }
 
-var timer = null;
-const GAME_TICK_TIME = 10;
-
-timer = window.setInterval(gameTick, GAME_TICK_TIME);
+/* Game Loop Functions */
 
 function gameTick() {
-	playerTick();
+	if (gameTime >= GAME_START_DELAY) {
+		playerTick();
+	}
 	drawPlanes();
+	gameTime++;
 }
 function playerTick() {
+	if (player.moveTimer>=PLAYER_SPEED) {
+		playerMove();
+		player.moveTimer = 0;
+	} else {
+		player.moveTimer++;
+	}
+}
+function playerMove() {
 	var skew = 0, scale = 1;
 	if(leftPressed && !(leftPressed && rightPressed)) { // LEFT
 		if (player.left > tileSize/2) {
@@ -233,6 +335,10 @@ function playerTick() {
 	}
 	document.getElementById("player").style.transform = "matrix(1, " + -skew + ", " + skew + ", " + scale + ", 0, 0)";
 }
+function enemyTick() {
+
+}
+
 
 
 		</script>
