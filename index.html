@@ -40,8 +40,11 @@ html {
 		<script type="text/javascript">
 
 const MARGIN = 40;
-var gameWidth = 900;
-var gameHeight = 700;
+const xTiles = 9*2; //multiple of nine
+const yTiles = 7*2; //multiple of seven
+var tileSize = 10;
+var gameWidth = 900, gameHeight = 700;
+var gameCornerX = 0, gameCornerY = 0;
 
 function alignGame() {
 	var screenHeight = window.innerHeight;
@@ -55,21 +58,31 @@ function alignGame() {
 	}
 	if (screenWidth*9<screenHeight*7) {
 		var marginVal = Math.floor((screenHeight - gameHeight)/2);
-		document.getElementById("game").style.left = MARGIN + "px";
-		document.getElementById("game").style.top = marginVal + "px";
-		document.getElementById("score").style.left = MARGIN + "px";
+		gameCornerX = MARGIN;
+		gameCornerY = marginVal;
 	} else {
 		var marginVal = Math.floor((screenWidth - gameWidth)/2);
-		document.getElementById("game").style.left = marginVal + "px";
-		document.getElementById("game").style.top = MARGIN + "px";
-		document.getElementById("score").style.left = marginVal + "px";
+		gameCornerX = marginVal;
+		gameCornerY = MARGIN;
 	}
+	document.getElementById("game").style.left = gameCornerX + "px";
+	document.getElementById("game").style.top = gameCornerY + "px";
+	document.getElementById("score").style.left = gameCornerX + "px";
 	document.getElementById("game").style.width = gameWidth + "px";
 	document.getElementById("game").style.height = gameHeight + "px";
 	document.getElementById("ocean").style.width = gameWidth + "px";
 	document.getElementById("ocean").style.height = gameHeight + "px";
+	tileSize = Math.floor(Math.min(gameWidth/xTiles, gameHeight/yTiles));
 }
 alignGame(); //Run once when the window is loaded. This is a code snippet from my Ninja Man Project located here : https://github.com/Luke-Draper/CodingDojo-NinjaManProject
+
+function updateTiles() {
+	var all = document.getElementsByClassName('tile');
+	for (var i = 0; i < all.length; i++) {
+		all[i].style.width = tileSize + "px";
+		all[i].style.height = tileSize + "px";
+	}
+}
 
 		</script>
 	</body>
