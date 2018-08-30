@@ -1,0 +1,65 @@
+<html>
+	<head>
+		<title>Airplane</title>
+		<style type="text/css">
+			* {
+				margin: 0;
+				padding: 0;
+				line-height: 0;
+			}
+			html {
+				background-color: black;
+			}
+			#score {
+				position: absolute;
+				top: 20;
+				font-family: monospace;
+				font-size: 20px;
+				left: 80;
+				color: white;
+			}
+			#game {
+				background-color: white;
+				position: absolute;
+				top: 40;
+				left: 80;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="game">
+			<div id="ocean"></div>
+		</div>
+		<div id="score">: Score 0 : Lives 3 :</div>
+		<script type="text/javascript">
+
+const MARGIN = 40;
+var gameSize = 100;
+
+function alignGame() {
+	var screenHeight = window.innerHeight;
+	var screenWidth = window.innerWidth;
+	if (screenWidth<screenHeight) {
+		gameSize = screenWidth - 2*MARGIN;
+	} else {
+		gameSize = screenHeight - 2*MARGIN;
+	}
+	if (screenWidth<screenHeight) {
+		var marginVal = Math.floor((screenHeight - gameSize)/2);
+		document.getElementById("game").style.left = MARGIN + "px";
+		document.getElementById("game").style.top = marginVal + "px";
+		document.getElementById("score").style.left = MARGIN + "px";
+	} else {
+		var marginVal = Math.floor((screenWidth - gameSize)/2);
+		document.getElementById("game").style.left = marginVal + "px";
+		document.getElementById("game").style.top = MARGIN + "px";
+		document.getElementById("score").style.left = marginVal + "px";
+	}
+	document.getElementById("game").style.width = gameSize + "px";
+	document.getElementById("game").style.height = gameSize + "px";
+}
+alignGame(); //Run once when the window is loaded. Attempted to make it resize functional but was not able to make it work.
+
+		</script>
+	</body>
+</html>
