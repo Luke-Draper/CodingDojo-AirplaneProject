@@ -29,19 +29,35 @@ html {
 	background-image: url("img/ocean.jpg");
 	background-size: contain;
 }
+#player {
+	position: absolute;
+	background-image: url("img/player.png");
+	background-size: contain;
+}
+.enemy {
+	position: absolute;
+	background-image: url("img/enemy.png");
+	background-size: contain;
+}
 
 		</style>
 	</head>
 	<body>
 		<div id="game">
 			<div id="ocean"></div>
+			<div id="players">
+				<div id="player" class="tile"></div>
+			</div>
+			<div id="enemies">
+				<div class="enemy tile"></div>
+			</div>
 		</div>
 		<div id="score">: Score 0 : Lives 3 :</div>
 		<script type="text/javascript">
 
 const MARGIN = 40;
-const xTiles = 9*2; //multiple of nine
-const yTiles = 7*2; //multiple of seven
+const xTiles = 9*1.5; //multiple of nine
+const yTiles = 7*1.5; //multiple of seven
 var tileSize = 10;
 var gameWidth = 900, gameHeight = 700;
 var gameCornerX = 0, gameCornerY = 0;
@@ -84,6 +100,34 @@ function updateTiles() {
 	}
 }
 
+function drawPlanes() {
+	drawPlayer();
+	drawEnemies();
+}
+function drawPlayer() {
+	document.getElementById("player").style.left = (player.left - tileSize/2) + "px";
+	document.getElementById("player").style.top = player.top + "px";
+	document.getElementById("player").style.width = tileSize + "px";
+	document.getElementById("player").style.height = tileSize + "px";
+}
+function drawEnemies() {
+
+}
+function createEnemyElements() {
+	
+}
+
+var player = {
+	left: gameWidth/2,
+	top: gameHeight*2/3
+}
+
+var enemies  = [
+	{left: gameWidth/3, top: gameHeight/3},
+	{left: gameWidth*2/3, top: gameHeight/6}
+];
+
+drawPlanes();
 		</script>
 	</body>
 </html>
